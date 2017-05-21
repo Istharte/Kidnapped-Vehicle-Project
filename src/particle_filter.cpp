@@ -232,6 +232,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         
         particles[i] = SetAssociations(particles[i], associations, sense_x, sense_y);
         
+        // reset weights
+        particles[i].weight = 1.0;
+        
         // update weight.
         for (int l = 0; l < observation_t.size(); l++)
         {
