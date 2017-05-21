@@ -80,7 +80,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     default_random_engine gen;
     
     // set the number of particles.
-    num_particles = 1000;
+    num_particles = 100;
     
     // Declare single particle.
 	Particle one_particle;
@@ -113,24 +113,32 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
     default_random_engine gen;
+    double new_yaw;
+    double v_by_y;
+    
+    // creates a normal (Gaussian) distribution for x,y and theta.
+    normal_distribution<double> dist_x(0, std_pos[0]);
+    normal_distribution<double> dist_y(0, std_pos[1]);
+    normal_distribution<double> dist_psi(0, std_pos[2]);
     
     for (int i = 0; i < num_particles; i++)
     {
-        double new_yaw = particles[i].theta + yaw_rate * delta_t;
-        double v_by_y = velocity / yaw_rate;
-        particles[i].x += v_by_y * (sin(new_yaw) - sin(particles[i].theta));
-        particles[i].y += v_by_y * (cos(particles[i].theta) - cos(new_yaw));
-        particles[i].theta = new_yaw;
-        
-        // creates a normal (Gaussian) distribution for x,y and theta.
-        normal_distribution<double> dist_x(particles[i].x, std_pos[0]);
-        normal_distribution<double> dist_y(particles[i].y, std_pos[1]);
-        normal_distribution<double> dist_psi(particles[i].theta, std_pos[2]);
+        if (yaw_rate != 0) {
+            new_yaw = particles[i].theta + yaw_rate * delta_t;
+            v_by_y = velocity / yaw_rate;
+            particles[i].x += v_by_y * (sin(new_yaw) - sin(particles[i].theta));
+            particles[i].y += v_by_y * (cos(particles[i].theta) - cos(new_yaw));
+            particles[i].theta = new_yaw;
+        } else {
+            particles[i].x += velocity * delta_t * cos(particles[i].theta);
+            particles[i].y += velocity * delta_t * sin(particles[i].theta);
+            particles[i].theta = particles[i].theta;
+        }
         
         // add random Gaussian noise.
-        particles[i].x = dist_x(gen);
-        particles[i].y = dist_y(gen);
-        particles[i].theta = dist_psi(gen);
+        particles[i].x += dist_x(gen);
+        particles[i].y += dist_y(gen);
+        particles[i].theta += dist_psi(gen);
         
         particles[i].id = i+1;
     }
@@ -271,7 +279,6 @@ void ParticleFilter::resample() {
     // Set of resample temporary particles
     vector<Particle> particles_temp;
     
-    double beta = 0.0;
     int index;
     
     for (int i = 0; i < num_particles; i++)
