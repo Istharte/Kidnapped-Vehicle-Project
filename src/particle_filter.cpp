@@ -37,6 +37,7 @@ void ExtractLandmark(double p_x, double p_y, std::vector<LandmarkObs> &sensor_la
         }
     }
 }
+
 // transform measurement to ground coordinate.
 void TransformObs(std::vector<LandmarkObs> &observations, double p_x, double p_y, double p_theta) {
     double o_x;
@@ -65,8 +66,7 @@ inline double Gaussian(LandmarkObs predicted, double std_landmark[], LandmarkObs
     
     pow_x = (predicted.x - sensor.x) * (predicted.x - sensor.x) / std_landmark[0] / std_landmark[0];
     pow_y = (predicted.y - sensor.y) * (predicted.y - sensor.y) / std_landmark[1] / std_landmark[1];
-    //cout<<"dist "<< dist(predicted.x, predicted.y, sensor.x, sensor.y)<< "\n";
-    //cout <<"Gaussian " << exp(-1.0 * sqrt(pow_x + pow_y) / 2.0) / 2.0 * M_PI * std_landmark[0] * std_landmark[1]<<"\n\n";
+    
     return exp(-1.0 * sqrt(pow_x + pow_y) / 2.0) / (2.0 * M_PI * std_landmark[0] * std_landmark[1]);
     
 }
@@ -191,7 +191,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account 
 	//   for the fact that the map's y-axis actually points downwards.)
 	//   http://planning.cs.uiuc.edu/node99.html
+    
+    // To store landmarks in sensor range.
     vector<LandmarkObs> sensor_landmarks;
+    
     // store transformed observations.
     vector<LandmarkObs> observation_t;
     
@@ -213,16 +216,19 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         p_y = particles[i].y;
         p_theta = particles[i].theta;
         
+        // extract landmarks in sensor range.
         ExtractLandmark(p_x, p_y, sensor_landmarks, map_landmarks, sensor_range);
         
         // Transform observations.
         observation_t = observations;
         TransformObs(observation_t, p_x, p_y, p_theta);
         
+        // associate observation to landmarks.
         dataAssociation(sensor_landmarks, observation_t);
         associations.clear();
         sense_x.clear();
         sense_y.clear();
+        
         for (int m = 0; m < observation_t.size(); m++)
         {
             associations.push_back(observation_t[m].id);
@@ -245,11 +251,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
                     single_landmark = sensor_landmarks[n];
                 }
             }
-            //cout<<single_landmark.id<<", "<<observation_t[l].id<<"\n";
+            
+            // Calculate weight.
             particles[i].weight = particles[i].weight * Gaussian(single_landmark, std_landmark, observation_t[l]);
             weights[i] = particles[i].weight;
-            //cout<<"x,x : "<< single_landmark.x - observation_t[l].x<<"\n";
-            //cout<<"y,y : "<< single_landmark.y - observation_t[l].y<<"\n";
+            
         }
     }
 }
@@ -270,10 +276,9 @@ void ParticleFilter::resample() {
     
     for (int i = 0; i < num_particles; i++)
     {
-        //cout<<"weights ["<<i<<"]: "<<weights[i]<<"\n";
         index = d(gen);
         particles_temp.push_back(particles[index]);
-        //cout<<"selected id: "<<particles[index].id<<"\n";
+        
     }
     
     particles.clear();
